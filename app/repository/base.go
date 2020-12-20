@@ -2,6 +2,7 @@ package repository
 
 import (
 	"errors"
+	"time"
 
 	"github.com/go-redis/redis"
 	"gorm.io/gorm"
@@ -38,6 +39,8 @@ var (
 	ErrConflict = errors.New("data conflict")
 	// ErrBadRequest for error bad request
 	ErrBadRequest = errors.New("bad request")
+	// ErrUnouthorized for error authorization
+	ErrUnouthorized = errors.New("unouthorized")
 )
 
 // repo struct with value mysqldb connection
@@ -50,9 +53,12 @@ type repo struct {
 type Repo interface {
 	// find
 	FindOne(table string, i, where interface{}, field string, whereValue ...interface{}) error
+	GetTTLRedis(key string) (int64, error)
+	FindToken(key string) (string, error)
 
 	// insert
 	Insert(table string, i interface{}) error
+	SetRedis(key string, value interface{}, exp time.Duration) error
 
 	// Update
 	Update(i interface{}, data map[string]interface{}) error

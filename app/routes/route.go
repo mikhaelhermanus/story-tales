@@ -41,7 +41,14 @@ func (c *route) Router(port string) {
 	router.Use(middleware.RecordMiddleware)
 
 	router.Group(func(r chi.Router) {
-		r.Post("/user/registration", c.ctrl.HandlerRegistration)
+		r.Post("/user/signup", c.ctrl.HandlerRegistration)
+		r.Post("/user/login", c.ctrl.HandlerLogin)
+	})
+
+	// group router if need to check session
+	router.Group(func(r chi.Router) {
+		r.Use(middleware.CheckSession)
+
 	})
 
 	router.MethodNotAllowed(middleware.NotAllowed)

@@ -1,12 +1,12 @@
 package middleware
 
 import (
+	"encoding/base64"
 	"net/http"
 	"strings"
-	"time"
 
+	"github.com/go-redis/redis"
 	"github.com/mfaizfatah/story-tales/app/adapter"
-	"github.com/mfaizfatah/story-tales/app/helpers/encryption"
 	"github.com/mfaizfatah/story-tales/app/helpers/logger"
 )
 
@@ -20,38 +20,18 @@ func CheckSession(next http.Handler) http.Handler {
 		auth := strings.Split(header, " ")
 
 		// valueRedis, err := adapter.GetClientRedis().Get(auth[1]).Result()
-		// if err != nil || err == redis.Nil {
-		// 	Response(ctx, w, http.StatusUnauthorized, "Session invalid")
-		// 	return
-		// }
-
-		sess := new(sessions)
-		err := adapter.DBSQL().Take(sess, "session = ? AND deleted = ?", auth[1], 0).Error
-		if err != nil {
-			Response(ctx, w, http.StatusUnauthorized, "Session Invalid")
+		valueRedis, err := adapter.UseRedis().Get(auth[1]).Result()
+		if err != nil || err == redis.Nil {
+			Response(ctx, w, http.StatusUnauthorized, "Session invalid")
 			return
 		}
 
-		loc, err := time.LoadLocation("Asia/Jakarta")
-		if err != nil {
-			Response(ctx, w, http.StatusInternalServerError, "Sorry. server configuration not available time Asia/Jakarta")
-			return
-		}
-		now := time.Now().In(loc).Format("2006-01-02 15:04:05")
-
-		if now > sess.ExpiredTime {
-			Response(ctx, w, http.StatusUnauthorized, "Session Expired")
-			return
-		}
-
-		data := strings.Split(sess.Value, "|")
-
-		if data[0] != auth[0] {
+		if auth[0] != "bearer" {
 			Response(ctx, w, http.StatusForbidden, "Bearer Token Format Error")
 			return
 		}
 
-		decryptData, err := encryption.Decrypt(data[1])
+		decryptData, err := base64.RawStdEncoding.DecodeString(valueRedis)
 		if err != nil {
 			ctx = logger.Logf(ctx, "Error while decrypt header => %v", err)
 			Response(ctx, w, http.StatusUnauthorized, "Wrong Authorization")

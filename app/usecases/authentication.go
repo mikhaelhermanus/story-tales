@@ -6,11 +6,10 @@ import (
 	"fmt"
 	"net/http"
 	"regexp"
-	"time"
 
+	"github.com/mfaizfatah/story-tales/app/helpers/logger"
 	"github.com/mfaizfatah/story-tales/app/models"
 	"github.com/mfaizfatah/story-tales/app/repository"
-	"github.com/sirupsen/logrus"
 )
 
 const (
@@ -43,7 +42,6 @@ func (r *uc) Registration(ctx context.Context, req *models.User) (context.Contex
 
 	err = r.query.FindOne(tableUser, user, "email = ?", "id, email", req.Email)
 	if user.Email != "" {
-		logrus.Printf("struct user() => %v", user)
 		return ctx, nil, ErrAlreadyEmail, http.StatusConflict, repository.ErrConflict
 	}
 
@@ -53,19 +51,59 @@ func (r *uc) Registration(ctx context.Context, req *models.User) (context.Contex
 	encrypted := sha.Sum(nil)
 
 	user.Password = fmt.Sprintf("%x", encrypted)
-
-	form := "2006-01-02"
-	user.DateOfBirth, err = time.Parse(form, req.DateOfBirth.(string))
-	if err != nil {
-		return ctx, nil, ErrCreated, http.StatusInternalServerError, err
-	}
+	user.DateOfBirth = req.DateOfBirth
 
 	err = r.query.Insert(tableUser, user)
 	if err != nil {
 		return ctx, nil, ErrCreated, http.StatusInternalServerError, err
 	}
 
+	ctx, token, duration, err := r.GenerateToken(ctx, user)
+	if err != nil {
+		return ctx, nil, ErrCreated, http.StatusInternalServerError, err
+	}
+
+	res.Token.Key = "bearer"
+	res.Token.Value = token
+	res.Token.ExpiredIn = fmt.Sprintf("%v", duration)
 	res.Message = "Registration Success"
 
 	return ctx, res, msg, http.StatusCreated, err
+}
+
+func (r *uc) Login(ctx context.Context, req *models.User) (context.Context, *models.ResponseLogin, string, int, error) {
+	var (
+		sha  = sha1.New()
+		res  = new(models.ResponseLogin)
+		user = new(models.User)
+		msg  string
+		err  error
+	)
+
+	err = r.query.FindOne(tableUser, user, "email = ?", "id, email, password", req.Email)
+	if err != nil {
+		return ctx, nil, ErrNotFound, http.StatusNotFound, repository.ErrRecordNotFound
+	}
+
+	sha.Write([]byte(req.Password))
+	encrypted := sha.Sum(nil)
+
+	req.Password = fmt.Sprintf("%x", encrypted)
+
+	if req.Password != user.Password {
+		return ctx, nil, ErrNotMatch, http.StatusUnauthorized, repository.ErrUnouthorized
+	}
+
+	ctx = logger.Logf(ctx, "user() => %v", user)
+	ctx, token, duration, err := r.GenerateToken(ctx, user)
+	if err != nil {
+		return ctx, nil, ErrCreateToken, http.StatusInternalServerError, err
+	}
+
+	res.Token.Key = "bearer"
+	res.Token.Value = token
+	res.Token.ExpiredIn = fmt.Sprintf("%v", duration)
+	res.Message = "Login Success"
+
+	return ctx, res, msg, http.StatusAccepted, nil
 }

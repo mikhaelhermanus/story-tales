@@ -21,6 +21,7 @@ const (
 	ErrInvalidHeader = "Invalid Header"
 	ErrTimezones     = "Timezone for Asia/Jakarta not found in our Server. Please try again later. Thank you"
 	ErrEncryption    = "Encryption failed"
+	ErrCreateToken   = "Error when create a token"
 
 	// layout date
 	LayoutDate = "2006-01-02 15:04:05"
@@ -33,8 +34,9 @@ type uc struct {
 
 // Usecases represent the Usecases contract
 type Usecases interface {
-	// Registration is func for user registration
+	// Authentication for logic auth
 	Registration(ctx context.Context, req *models.User) (context.Context, *models.ResponseLogin, string, int, error)
+	Login(ctx context.Context, req *models.User) (context.Context, *models.ResponseLogin, string, int, error)
 }
 
 /*NewUC will create an object that represent the Usecases interface (Usecases)

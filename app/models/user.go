@@ -6,7 +6,8 @@ type User struct {
 	Username    string      `json:"username" gorm:"column:username"`
 	Email       string      `json:"email" gorm:"column:email"`
 	Password    string      `json:"password" gorm:"column:password"`
-	Name        string      `json:"name" gorm:"name"`
-	DateOfBirth interface{} `json:"dateOfBirth" gorm:"date_of_birth"`
+	Name        string      `json:"name" gorm:"column:name"`
+	Telp        string      `json:"telp" gorm:"column:telp"`
+	DateOfBirth interface{} `json:"dateOfBirth" gorm:"column:date_of_birth"`
 	IDRole      int         `json:"idRole" gorm:"column:id_role"`
 }

@@ -13,8 +13,9 @@ type ctrl struct {
 
 // Controllers represent the Controllers contract
 type Controllers interface {
-	// HandlerRegistration for handling user registration
+	// Authentication controllers
 	HandlerRegistration(w http.ResponseWriter, r *http.Request)
+	HandlerLogin(w http.ResponseWriter, r *http.Request)
 }
 
 /*NewCtrl will create an object that represent the Controllers interface (Controllers)
